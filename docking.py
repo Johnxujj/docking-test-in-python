@@ -1,30 +1,12 @@
-import urllib.request
-import re
 import os
 import random
 import math
+import re
 
-thr = 4.
-'''
-def download_pdb(pdb_id):
-    base_url = "https://files.rcsb.org/view/"
-    file_name = pdb_id + ".pdb"
-    target_url = base_url + file_name
-    directory_path = "Desktop/xu/4750/csee012"
-    pdb_file = directory_path + file_name
-    if (file_name.lower() in os.listdir(directory_path)) or (
-                file_name.upper() in os.listdir(directory_path)):
-        print("\n" + "-----------------\n" +
-              file_name + " is already in " + directory_path)  # +
-    else:
-        try:
-            urllib.request.urlretrieve(target_url, pdb_file)
-            print(file_name + " downloaded>>>>")
-            #input("Pause01! Press enter to start again.")
-        except(urllib.error.HTTPError or TimeoutError or urllib.error.URLError):
-            print("ERROR: Network connection problem when "
-                  "trying to download " + pdb_file + " from " + target_url + ". \nReturning to program...")
-'''
+def random_n(n):
+    a = random.uniform(-1.0*n,n)
+    return a
+
 def parse_pdb(pdb_id):
     file_name = pdb_id + ".pdb"
     directory_path = "C:/Structures/"
@@ -40,19 +22,19 @@ def parse_pdb(pdb_id):
     with open(pdb_id+".pdb","r") as f:
         for line in f:
             if re.match('^ATOM.*', line):
+
                 atom.append(" ")
                 atom[na] = [" "]*7
-
                 atom[na][0] = float(line[30:38].strip())  # x
                 atom[na][1] = float(line[38:46].strip())  # y
-                atom[na][2] = float(line[46:54].strip())  # z
+                atom[na][2] = float(line[46:54].strip())  # z coordinates
                 atom[na][3] = line[12:16]          # atom name
                 atom[na][4] = line[21]             # chain ID
                 atom[na][5] = line[17:20]          #res name
                 atom[na][6] = int(line[22:26])          #res no.
                 na += 1
 
-            elif re.match('^HETATM.*STL', line):
+            elif re.match('^HETATM.*', line):
                 if line[21] == 'B':
                     continue
                 het.append(" ")
@@ -61,16 +43,16 @@ def parse_pdb(pdb_id):
                 het[nh][1] = float(line[38:46].strip()) # y
                 het[nh][2] = float(line[46:54].strip()) # z
                 het[nh][3] = line[12:16] #atom name
-                het[nh][4] = line[21]
+                het[nh][4] = "C" #line[21]    #chain ID
                 nh += 1
             elif re.match('^(HEADER|COMPND|TITLE)',line):
                 print(line)
                 #input("pause01: press Enter to continue")
-    #print("number of atoms:"+str(na)+" number of het atoms:"+str(nh))
+    #for i in range(len(het)):
+    #    print(het[i][0],het[i][1],het[i][2],het[i][3],het[i][4])
     return atom, het
 
 def initialization(c,m):
-    #c = [[0.]*3 for i in range(4)] #list
     ix = random_n(m)
     iy = random_n(m)
     iz = random_n(m)
@@ -80,7 +62,25 @@ def initialization(c,m):
         c[i][2] += iz
     return c
 
-def ratation(c,m):
+def translation(c,m):
+    dx = random_n(m) #delta x
+    dy = random_n(m)
+    dz = random_n(m)
+    for i in range(len(c)):
+        c[i][0] += dx
+        c[i][1] += dy
+        c[i][2] += dz
+    return c
+
+def geometry_center(c):
+    v = [0.,0.,0.]
+    for i in range(len(c)):
+        v[0] += c[i][0] / float(len(c))  # x
+        v[1] += c[i][1] / float(len(c))  # y
+        v[2] += c[i][2] / float(len(c))  # z
+    return v
+
+def rotation(c,m):
     pi = math.pi
     a = random_n(m)/180.*pi #around z axis
     b = random_n(m)/180.*pi #around y axis
@@ -118,28 +118,6 @@ def ratation(c,m):
         c[i][2] = n[i][2] + ori[2]  # z
     return c
 
-def translation(c,m):
-    dx = random_n(m) #delta x
-    dy = random_n(m)
-    dz = random_n(m)
-    for i in range(len(c)):
-        c[i][0] += dx
-        c[i][1] += dy
-        c[i][2] += dz
-    return c
-
-def geometry_center(c):
-    v = [0.,0.,0.]
-    for i in range(len(c)):
-        v[0] += c[i][0] / float(len(c))  # x
-        v[1] += c[i][1] / float(len(c))  # y
-        v[2] += c[i][2] / float(len(c))  # z
-    return v
-
-def random_n(n):
-    a = random.uniform(-1.0*n,n)
-    return a
-
 def box(a,c):
     (xmax,ymax,zmax) = (-1000.,-1000.,-1000.)
     (xmin,ymin,zmin) = (1000.,1000.,1000.)
@@ -151,18 +129,12 @@ def box(a,c):
         if a[i][2] > zmax:
             zmax = a[i][2]
         if a[i][0] < xmin:
-            xmax = a[i][0]
-        if a[i][1] > ymin:
-            ymax = a[i][1]
-        if a[i][2] > zmin:
-            zmax = a[i][2]
-    lx = xmax - xmin
-    ly = ymax - ymin
-    lz = zmax - zmin
-    l = max(lx,ly,lz)
+            xmin = a[i][0]
+        if a[i][1] < ymin:
+            ymin = a[i][1]
+        if a[i][2] < zmin:
+            zmin = a[i][2]
     return xmax,xmin,ymax,ymin,zmax,zmin
-    #print(xmax,xmin,ymax,ymin,zmax,zmin,lx,ly,lz,l)
-    #input("please enter to continue")
 
 def centralization(a,xc,yc,zc):
     for i in range(len(a)):
@@ -170,69 +142,78 @@ def centralization(a,xc,yc,zc):
         a[i][1] -= yc
         a[i][2] -= zc
     return a
-
-def boundry(c,l):
+def boundary(c,l):
     (xc, yc, zc) = geometry_center(c) #find the location of the center of drug
     dx = 0.
     dy = 0.
     dz = 0.
-    if xc > 1/2. :
+    if xc > l/2. :
         dx = (1/2.-xc)
-    if xc < 1/-2.:
-        dx = (1/-2.-xc)
-    if yc > 1/2. :
+    if xc < l/-2.:
+        dx = (l/-2.-xc)
+    if yc > l/2. :
         dy = (1/2.-yc)
-    if yc < 1/-2.:
-        dy = (1/-2.-yc)
-    if zc > 1/2. :
+    if yc < l/-2.:
+        dy = (l/-2.-yc)
+    if zc > l/2. :
         dz = (1/2.-zc)
-    if zc < 1/-2.:
-        dz = (1/-2.-zc)
+    if xc < l/-2.:
+        dz = (l/-2.-zc)
     for i in range(len(c)):
         c[i][0] += dx
         c[i][1] += dy
         c[i][2] += dz
     return c
-
-def distance(v1,v2):
+def compute_distance(v1,v2):
     d = ((v1[0]-v2[0])**2+(v1[1]-v2[1])**2+(v1[2]-v2[2])**2)**.5 #compute the Eular distance
     return d
 
 def bounce(a,c):
+    overlap = False
     for i in range(len(c)):
         for j in range(len(a)):
-            d = distance(a[j],c[i])
-            if d < 1.:
+            d = compute_distance(a[j],c[i])
+            if d < 1.5:
                 overlap = True
                 break
     return overlap
 
-def rec(c,old_c): #put c into old in order to record or recover
+def rec(c,old_c): #put c into o in order to record or recover
     for i in range(len(c)):
         old_c[i][0] = c[i][0]
         old_c[i][1] = c[i][1]
         old_c[i][2] = c[i][2]
     return old_c
+def golike(c,d):
+    energy = 0.
+    for i in range(len(c)):
+        distance = compute_distance(c[i], d[i])
+        energy += -1./distance
+    return energy
 
 def main():
-    side_length = 80.
+    side_length = 80. #size of the box
     fout = open("./2try.pdb",'w') #a
-    (a, c) = parse_pdb("4qoh")
-    #(xmax,xmin,ymax,ymin,zmax,zmin) = box(a,c) #to create a virtual box
-    (xc, yc, zc) = geometry_center(a) #find the geometry center of protein
-    a = centralization(a, xc, yc, zc) #move the protein to the origin
+    atype = ['C','N','O','S']
+    (a, c) = parse_pdb("4qoh") #a: atom; c: compound
+    (xmax,xmin,ymax,ymin,zmax,zmin) = box(a,c) #to create a virtual box
+    (xc,yc,zc) = geometry_center(a) #find the geometry center of protein
+    a = centralization(a,xc,yc,zc) #move the protein to the origin
+    c0 = [[0]*6 for i in range(len(c))]
+    c0 = rec(c,c0) #record or recover values in first one will go to the 2nd one
+    print(c0)
     (xc, yc, zc) = geometry_center(c)  # find the geometry center of compound
-    c = centralization(c, xc, yc, zc) #move the drug to the drigin
-    c = initialization(c,side_length/2.)  # move the drug to the origin
-    for i in range(100): #30 steps
-        for j in range(len(a)): #
-            if a[j][4] != a[j-1][4] and j>0:
+    c = centralization(c, xc, yc, zc)  # move the drug to the origin
+    c = initialization(c, side_length / 2.)  # coordinates of molecule
+    score0 = 0. #the score of the previous step
+    for i in range(100): #100 steps
+        for j in range(len(a)): #no. of atom
+            if a[j][4] != a[j-1][4] and j > 0:
                 fout.write("TER\n")
             line = "{0:6s}{1:5d} {2:4s} {3:3s} {4:1s}{5:4d}    {6:8.3f}{7:8.3f}{8:8.3f}\n".format('ATOM  ', j + 1,
                                                                                                   a[j][3], a[j][5],
-                                                                                                  a[j][4], a[j][6], a[j][0],
-                                                                                                  a[j][1], a[j][2])
-            print(line)
+                                                                                                  a[j][4], a[j][6],
+                                                                                                  a[j][0], a[j][1], a[j][2])
             fout.write(line)
         fout.write("TER\n")
         for j in range(len(c)): #no. of atom
@@ -243,14 +224,26 @@ def main():
         fout.write("END\n")
         overlap = True
         old_c = [[0.] * 6 for i in range(len(c))]
-        rec(c,old_c) #
-        while (overlap): #when protein and drug bounce together we will re do it
-            c = translation(c,5.)
-            c = ratation(c,30.)
+        rec(c,old_c) #record or recover values in first one will go to the 2nd one
+        while (overlap): #when protein and drug bounce together we will redo it
+            c = translation(c,10.)
+            c = rotation(c,60.)
             overlap = bounce(a,c)
             if overlap:
-                c = old_c
-        c = boundry(c,side_length)
+                rec(old_c,c) #recover the coordinates of drug
+                continue
+            score = golike(c0,c)
+            print(score,score0, math.exp(-100.*(score-score0)))
+            if score < score0: #math.exp(-100.*(score-score0)) < random.uniform(0.,1.):
+                score0 = score
+            else:
+                rec(old_c,c) #recover the coordinates of drug
+                overlap = True
+        #input("press Enter to continue")
+        if score < -3.:
+            break
+        c = boundary(c,side_length)
         print(c)
     fout.close()
+
 main()
